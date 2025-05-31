@@ -1,0 +1,516 @@
+import React, { useState, useEffect } from 'react';
+import { CheckCircle, XCircle, RotateCcw, Trophy, BookOpen, Target, Star } from 'lucide-react';
+
+const CytologyQuizSystem = () => {
+  const [difficulty, setDifficulty] = useState('basic');
+  const [gameState, setGameState] = useState('start');
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [score, setScore] = useState(0);
+  const [userAnswer, setUserAnswer] = useState(null);
+  const [showResult, setShowResult] = useState(false);
+  const [shuffledQuestions, setShuffledQuestions] = useState([]);
+
+  // 問題データベース（難易度別）
+  const questionDatabase = {
+    basic: [
+      {
+        id: 1,
+        question: "中皮腫は球状細胞集塊を多数認める。",
+        answer: true,
+        explanation: "中皮腫では球状、乳頭状、まりも状などの集塊が多数見られる場合があり、これは中皮腫を考える重要な所見です。",
+        topic: "体腔液"
+      },
+      {
+        id: 2,
+        question: "中皮腫は全周性の微絨毛発達が特徴である。",
+        answer: true,
+        explanation: "中皮腫では全周性の微絨毛発達が特徴的です。片側性ではありません。",
+        topic: "体腔液"
+      },
+      {
+        id: 3,
+        question: "印環細胞癌の細胞質は泡沫状や空胞状を呈する。",
+        answer: true,
+        explanation: "体腔液中に出現する胃印環細胞癌では、細胞質が泡沫状や空胞状の形態を示します。",
+        topic: "体腔液"
+      },
+      {
+        id: 4,
+        question: "印環細胞癌はPAS反応で細胞質が顆粒状に陽性となる。",
+        answer: false,
+        explanation: "印環細胞癌はPAS反応で細胞質内の粘液が染まるため「滴状」に陽性を示します。顆粒状ではありません。",
+        topic: "体腔液"
+      },
+      {
+        id: 5,
+        question: "髄膜腫では核内偽封入体がしばしばみられる。",
+        answer: true,
+        explanation: "髄膜腫は核内細胞質（偽）封入体がみられることが特徴的な所見です。",
+        topic: "脳脊髄"
+      },
+      {
+        id: 6,
+        question: "膠芽腫は血管の増生に乏しい。",
+        answer: false,
+        explanation: "膠芽腫は血管や血管内皮細胞の増生が顕著な特徴の一つです。",
+        topic: "脳脊髄"
+      },
+      {
+        id: 7,
+        question: "上衣腫では血管周囲性偽ロゼットの形成がみられる。",
+        answer: true,
+        explanation: "上衣腫では上衣ロゼット（真のロゼット）や血管周囲偽ロゼットがみられます。",
+        topic: "脳脊髄"
+      },
+      {
+        id: 8,
+        question: "中皮腫ではオレンジG好性細胞の出現がみられる。",
+        answer: true,
+        explanation: "中皮腫では細胞が変性して中間径フィラメントが収縮することにより、オレンジGに染まる細胞が出現しやすくなります。",
+        topic: "体腔液"
+      },
+      {
+        id: 9,
+        question: "卵巣明細胞癌ではRaspberry小体がみられる。",
+        answer: true,
+        explanation: "卵巣明細胞癌が球状集塊で出現する際、その中央にギムザで異染性を示す基底膜様物質（raspberry小体やIto小体）をみることがあります。",
+        topic: "体腔液"
+      },
+      {
+        id: 10,
+        question: "浸潤性小葉癌は数珠状配列が特徴である。",
+        answer: true,
+        explanation: "浸潤性小葉癌では数珠状配列が特徴的です。これは円形・類円形細胞が一列に並ぶ状態を指します。",
+        topic: "乳腺"
+      },
+      {
+        id: 11,
+        question: "髄様癌は大型で異型の強い腫瘍細胞と背景のリンパ球の二相性が特徴である。",
+        answer: true,
+        explanation: "乳腺の髄様癌は大型で異型の強い腫瘍細胞と背景のリンパ球の二相性が特徴的な所見です。",
+        topic: "乳腺"
+      },
+      {
+        id: 12,
+        question: "硝子化索状腫瘍では細胞質内に黄色体（Yellow body）がみられる。",
+        answer: true,
+        explanation: "硝子化索状腫瘍では周囲に明暈を伴う淡染性の滴状物である黄色体（Yellow body）がみられます。",
+        topic: "甲状腺"
+      }
+    ],
+    intermediate: [
+      {
+        id: 13,
+        question: "MTAP蛋白が細胞質から消失することは中皮腫の鑑別に有用である。",
+        answer: true,
+        explanation: "中皮腫ではCDKN2A(p16)のホモ欠失がみられ、その代替マーカーとしてMTAPが使われます。CDKN2A(p16)のホモ欠失があれば、MTAP免染で細胞質の発現が高率に消失します。",
+        topic: "体腔液"
+      },
+      {
+        id: 14,
+        question: "印環細胞癌の細胞質内粘液はBerlin blue染色陽性である。",
+        answer: false,
+        explanation: "細胞質内の粘液はBerlin blue染色ではなくAlcian blue染色が陽性です。",
+        topic: "体腔液"
+      },
+      {
+        id: 15,
+        question: "多形型横紋筋肉腫は小児に好発する。",
+        answer: false,
+        explanation: "多形型横紋筋肉腫は50代などの高齢者に多く発症します。小児に好発するのは胎児型や胞巣型です。",
+        topic: "軟部腫瘍"
+      },
+      {
+        id: 16,
+        question: "胞巣状軟部肉腫では細胞質にPAS反応陽性の結晶構造物を認める。",
+        answer: true,
+        explanation: "胞巣状軟部肉腫は細胞質にジアスターゼ抵抗性のPAS陽性針状結晶を認めます。この結晶はPAMで確認しやすいとされます。",
+        topic: "軟部腫瘍"
+      },
+      {
+        id: 17,
+        question: "血管肉腫ではETS関連遺伝子（ERG）蛋白が細胞膜に陽性となる。",
+        answer: false,
+        explanation: "血管肉腫ではERGは「核」に陽性となります。細胞膜ではありません。ERGは血管肉腫で感度が高いマーカーです。",
+        topic: "軟部腫瘍"
+      },
+      {
+        id: 18,
+        question: "Paget病では微小浸潤はみられない。",
+        answer: false,
+        explanation: "Paget病は間質浸潤がある場合は微小浸潤までとされているため、微小浸潤がみられることがあります。",
+        topic: "乳腺"
+      },
+      {
+        id: 19,
+        question: "亜急性甲状腺炎では多核組織球がみられる。",
+        answer: true,
+        explanation: "亜急性甲状腺炎では背景の炎症細胞（好中球やリンパ球など）と多核組織球や類上皮細胞の出現が特徴です。",
+        topic: "甲状腺"
+      },
+      {
+        id: 20,
+        question: "硝子化索状腫瘍では免疫組織化学でKi-67（MIB-1）が細胞膜に陽性を示す。",
+        answer: true,
+        explanation: "硝子化索状腫瘍は免染が特徴的で、多くの腫瘍で核に陽性を示すMIB-1が「細胞膜」に陽性を示します。",
+        topic: "甲状腺"
+      },
+      {
+        id: 21,
+        question: "髄様癌は免疫組織化学でCEA陽性である。",
+        answer: true,
+        explanation: "髄様癌の腫瘍細胞はCEAやカルシトニンに陽性を示します。その他、シナプトフィジン、クロモグラニンAなどの神経内分泌マーカーにも陽性です。",
+        topic: "甲状腺"
+      }
+    ],
+    advanced: [
+      {
+        id: 22,
+        question: "Calretininは細胞膜に陽性を示すため中皮腫の鑑別に有用である。",
+        answer: false,
+        explanation: "Calretininは「細胞質と核」に陽性を示します。細胞膜ではありません。",
+        topic: "体腔液"
+      },
+      {
+        id: 23,
+        question: "p16/CDKN2Aホモ接合性欠失は中皮腫の鑑別に有用である。",
+        answer: true,
+        explanation: "中皮腫ではp16/CDKN2Aのホモ欠失がみられます。その他、BAP1消失（核）やNF2ヘミ欠失があります。",
+        topic: "体腔液"
+      },
+      {
+        id: 24,
+        question: "ニューロピルはSchwann細胞腫の特徴的な背景である。",
+        answer: false,
+        explanation: "Schwann細胞腫でニューロピルは特徴ではありません。ニューロピルが見られやすいのは中枢性神経細胞腫、高度結節性髄芽腫、多層ロゼット性胎児性腫瘍などです。",
+        topic: "脳脊髄"
+      },
+      {
+        id: 25,
+        question: "滑膜肉腫は単相型と二相型に分類される。",
+        answer: true,
+        explanation: "滑膜肉腫は単相型（単相線維型）、二相型があります。低分化なパターンもありますが、基本的には2つの型に分類されます。",
+        topic: "軟部腫瘍"
+      },
+      {
+        id: 26,
+        question: "粘液型脂肪肉腫は高分化型脂肪肉腫に由来する。",
+        answer: false,
+        explanation: "高分化型脂肪肉腫を前駆病変とするのは「脱分化型」脂肪肉腫です。粘液型脂肪肉腫は異なる疾患です。",
+        topic: "軟部腫瘍"
+      },
+      {
+        id: 27,
+        question: "ギラン・バレー症候群の推定は脳脊髄液細胞診の目的である。",
+        answer: false,
+        explanation: "ギラン・バレー症候群の脳脊髄液検査といえば蛋白細胞乖離（細胞数は正常で蛋白量が増加する現象）が一般的で、細胞診が有効なイメージはありません。",
+        topic: "脳脊髄"
+      },
+      {
+        id: 28,
+        question: "基質産生癌は紡錘形細胞の介在が特徴である。",
+        answer: false,
+        explanation: "基質産生癌は紡錘形細胞や破骨細胞の介在はなく、軟骨基質や骨基質の産生が特徴です。",
+        topic: "乳腺"
+      },
+      {
+        id: 29,
+        question: "硝子化索状腫瘍では核内細胞質封入体はみられない。",
+        answer: false,
+        explanation: "硝子化索状腫瘍は乳頭癌でよく見られる核内細胞質封入体や核溝がよく見られます。ただし、すりガラス状核や核重畳は見られません。",
+        topic: "甲状腺"
+      },
+      {
+        id: 30,
+        question: "良性の尿路上皮細胞集塊の辺縁には被蓋（傘）細胞が認められない。",
+        answer: false,
+        explanation: "良性の尿路上皮細胞集塊辺縁には被蓋細胞（アンブレラ細胞）が認められることがあります。被蓋細胞が認められれば良性を考えます。",
+        topic: "尿"
+      }
+    ]
+  };
+
+  const difficultyLabels = {
+    basic: { name: "基礎", icon: BookOpen, color: "bg-green-500", description: "基本的な細胞所見" },
+    intermediate: { name: "標準", icon: Target, color: "bg-yellow-500", description: "鑑別診断・免疫組織化学" },
+    advanced: { name: "上級", icon: Star, color: "bg-red-500", description: "複雑な病理所見・分子病理" }
+  };
+
+  // 問題をシャッフルして選択
+  const shuffleQuestions = (questions, count = 20) => {
+    const shuffled = [...questions].sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, Math.min(count, shuffled.length));
+  };
+
+  const startQuiz = (selectedDifficulty) => {
+    setDifficulty(selectedDifficulty);
+    const questions = questionDatabase[selectedDifficulty];
+    setShuffledQuestions(shuffleQuestions(questions));
+    setGameState('quiz');
+    setCurrentQuestionIndex(0);
+    setScore(0);
+    setUserAnswer(null);
+    setShowResult(false);
+  };
+
+  const handleAnswer = (answer) => {
+    setUserAnswer(answer);
+    setShowResult(true);
+    
+    const currentQuestion = shuffledQuestions[currentQuestionIndex];
+    if (answer === currentQuestion.answer) {
+      setScore(score + 1);
+    }
+
+    setTimeout(() => {
+      if (currentQuestionIndex + 1 < shuffledQuestions.length) {
+        setCurrentQuestionIndex(currentQuestionIndex + 1);
+        setUserAnswer(null);
+        setShowResult(false);
+      } else {
+        setGameState('end');
+      }
+    }, 2500);
+  };
+
+  const resetQuiz = () => {
+    setGameState('start');
+    setCurrentQuestionIndex(0);
+    setScore(0);
+    setUserAnswer(null);
+    setShowResult(false);
+    setShuffledQuestions([]);
+  };
+
+  const getScoreColor = (percentage) => {
+    if (percentage >= 80) return 'text-green-600';
+    if (percentage >= 60) return 'text-yellow-600';
+    return 'text-red-600';
+  };
+
+  const getGrade = (percentage) => {
+    if (percentage >= 90) return { grade: 'S', message: '完璧です！細胞検査士として十分な知識です！' };
+    if (percentage >= 80) return { grade: 'A', message: '素晴らしい！試験合格レベルです！' };
+    if (percentage >= 70) return { grade: 'B', message: '良好です！もう少し復習して完璧に！' };
+    if (percentage >= 60) return { grade: 'C', message: '基礎はできています。応用問題を練習しましょう！' };
+    return { grade: 'D', message: '基礎から復習が必要です。頑張りましょう！' };
+  };
+
+  if (gameState === 'start') {
+    return (
+      <div className="max-w-4xl mx-auto p-6 bg-white rounded-lg shadow-lg">
+        <div className="text-center mb-8">
+          <div className="mb-4">
+            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <BookOpen className="w-8 h-8 text-blue-600" />
+            </div>
+            <h1 className="text-3xl font-bold text-gray-800 mb-2">細胞検査士試験 ○×問題集</h1>
+            <p className="text-gray-600">実際の過去問データに基づいた本格的な試験対策</p>
+          </div>
+        </div>
+
+        <div className="grid gap-6 md:grid-cols-3">
+          {Object.entries(difficultyLabels).map(([key, config]) => {
+            const IconComponent = config.icon;
+            const questionCount = questionDatabase[key].length;
+            
+            return (
+              <div key={key} className="border rounded-lg p-6 hover:shadow-md transition-shadow cursor-pointer" onClick={() => startQuiz(key)}>
+                <div className="text-center">
+                  <div className={`w-12 h-12 ${config.color} rounded-full flex items-center justify-center mx-auto mb-4`}>
+                    <IconComponent className="w-6 h-6 text-white" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-800 mb-2">{config.name}レベル</h3>
+                  <p className="text-gray-600 text-sm mb-4">{config.description}</p>
+                  <div className="bg-gray-100 rounded-lg p-3 mb-4">
+                    <div className="text-2xl font-bold text-gray-800">{questionCount}問</div>
+                    <div className="text-xs text-gray-600">ランダム出題</div>
+                  </div>
+                  <button className={`w-full ${config.color} text-white py-2 px-4 rounded-lg font-semibold hover:opacity-90 transition-opacity`}>
+                    開始する
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="mt-8 bg-blue-50 rounded-lg p-6">
+          <h3 className="text-lg font-bold text-blue-800 mb-3">💡 学習のポイント</h3>
+          <div className="grid md:grid-cols-2 gap-4 text-sm text-blue-700">
+            <div>
+              <strong>基礎レベル:</strong> 各臓器の基本的な細胞所見
+            </div>
+            <div>
+              <strong>標準レベル:</strong> 鑑別診断・免疫組織化学
+            </div>
+            <div>
+              <strong>上級レベル:</strong> 複雑な病理所見・分子病理
+            </div>
+            <div>
+              <strong>出題範囲:</strong> 体腔液・脳脊髄・乳腺・甲状腺・軟部・尿
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (gameState === 'quiz') {
+    const currentQuestion = shuffledQuestions[currentQuestionIndex];
+    const progress = ((currentQuestionIndex + 1) / shuffledQuestions.length) * 100;
+    
+    return (
+      <div className="max-w-3xl mx-auto p-6 bg-white rounded-lg shadow-lg">
+        <div className="mb-6">
+          <div className="flex justify-between items-center mb-4">
+            <div className="flex items-center gap-4">
+              <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-semibold">
+                {difficultyLabels[difficulty].name}レベル
+              </span>
+              <span className="text-gray-600 font-semibold">
+                問題 {currentQuestionIndex + 1} / {shuffledQuestions.length}
+              </span>
+            </div>
+            <div className="text-right">
+              <div className="text-lg font-bold text-blue-600">スコア: {score}</div>
+              <div className="text-sm text-gray-600">正答率: {currentQuestionIndex > 0 ? Math.round((score / currentQuestionIndex) * 100) : 0}%</div>
+            </div>
+          </div>
+          
+          <div className="w-full bg-gray-200 rounded-full h-2">
+            <div 
+              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+              style={{ width: `${progress}%` }}
+            ></div>
+          </div>
+        </div>
+
+        <div className="bg-gray-50 rounded-lg p-6 mb-6">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs font-semibold">
+              {currentQuestion.topic}
+            </span>
+          </div>
+          <h2 className="text-xl font-bold text-gray-800 mb-6 leading-relaxed">
+            {currentQuestion.question}
+          </h2>
+
+          {!showResult ? (
+            <div className="flex gap-4 justify-center">
+              <button
+                onClick={() => handleAnswer(true)}
+                className="flex-1 max-w-xs bg-green-600 text-white py-4 px-6 rounded-lg text-lg font-semibold hover:bg-green-700 transition-colors flex items-center justify-center gap-3"
+              >
+                <CheckCircle className="w-6 h-6" />
+                ○（正しい）
+              </button>
+              <button
+                onClick={() => handleAnswer(false)}
+                className="flex-1 max-w-xs bg-red-600 text-white py-4 px-6 rounded-lg text-lg font-semibold hover:bg-red-700 transition-colors flex items-center justify-center gap-3"
+              >
+                <XCircle className="w-6 h-6" />
+                ×（間違い）
+              </button>
+            </div>
+          ) : (
+            <div className="text-center">
+              <div className={`p-4 rounded-lg mb-4 ${
+                userAnswer === currentQuestion.answer 
+                  ? 'bg-green-100 border-green-500' 
+                  : 'bg-red-100 border-red-500'
+              } border-2`}>
+                <div className="flex items-center justify-center gap-3 mb-3">
+                  {userAnswer === currentQuestion.answer ? (
+                    <>
+                      <CheckCircle className="w-8 h-8 text-green-600" />
+                      <span className="text-2xl font-bold text-green-700">正解！</span>
+                    </>
+                  ) : (
+                    <>
+                      <XCircle className="w-8 h-8 text-red-600" />
+                      <span className="text-2xl font-bold text-red-700">不正解</span>
+                    </>
+                  )}
+                </div>
+                <div className="text-lg font-semibold text-gray-700 mb-1">
+                  正答: {currentQuestion.answer ? '○（正しい）' : '×（間違い）'}
+                </div>
+              </div>
+              
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-left">
+                <h4 className="font-bold text-blue-800 mb-2">📚 解説</h4>
+                <p className="text-blue-700 leading-relaxed">{currentQuestion.explanation}</p>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  if (gameState === 'end') {
+    const percentage = Math.round((score / shuffledQuestions.length) * 100);
+    const gradeInfo = getGrade(percentage);
+    
+    return (
+      <div className="max-w-2xl mx-auto p-6 bg-white rounded-lg shadow-lg">
+        <div className="text-center mb-8">
+          <Trophy className="w-16 h-16 mx-auto mb-4 text-yellow-500" />
+          <h2 className="text-3xl font-bold text-gray-800 mb-2">試験結果</h2>
+          <p className="text-gray-600">{difficultyLabels[difficulty].name}レベル完了</p>
+        </div>
+
+        <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-6 mb-6">
+          <div className="text-center mb-6">
+            <div className={`text-6xl font-bold mb-2 ${getScoreColor(percentage)}`}>
+              {gradeInfo.grade}
+            </div>
+            <div className="text-3xl font-bold text-gray-800 mb-2">
+              {score} / {shuffledQuestions.length}
+            </div>
+            <div className={`text-xl font-semibold ${getScoreColor(percentage)}`}>
+              正答率 {percentage}%
+            </div>
+          </div>
+          
+          <div className="bg-white rounded-lg p-4 shadow-inner">
+            <p className="text-gray-700 text-center font-medium">{gradeInfo.message}</p>
+          </div>
+        </div>
+
+        <div className="bg-gray-50 rounded-lg p-4 mb-6">
+          <h3 className="font-bold text-gray-800 mb-3">📊 詳細結果</h3>
+          <div className="grid grid-cols-2 gap-4 text-center">
+            <div className="bg-white rounded-lg p-3">
+              <div className="text-2xl font-bold text-green-600">{score}</div>
+              <div className="text-sm text-gray-600">正解数</div>
+            </div>
+            <div className="bg-white rounded-lg p-3">
+              <div className="text-2xl font-bold text-red-600">{shuffledQuestions.length - score}</div>
+              <div className="text-sm text-gray-600">不正解数</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="text-center space-y-4">
+          <button
+            onClick={() => startQuiz(difficulty)}
+            className="bg-blue-600 text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-blue-700 transition-colors flex items-center gap-2 mx-auto"
+          >
+            <RotateCcw className="w-5 h-5" />
+            同じレベルでもう一度
+          </button>
+          <button
+            onClick={resetQuiz}
+            className="text-gray-600 hover:text-gray-800 flex items-center gap-2 mx-auto"
+          >
+            レベル選択に戻る
+          </button>
+        </div>
+      </div>
+    );
+  }
+};
+
+export default CytologyQuizSystem;
