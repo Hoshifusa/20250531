@@ -429,6 +429,11 @@
                             <h4>📚 解説</h4>
                             <p id="explanation-text"></p>
                         </div>
+                        <div style="text-align: center; margin-top: 20px;">
+                            <button id="next-btn" class="start-btn" onclick="nextQuestion()" style="display: none; padding: 12px 30px; font-size: 1.1rem;">
+                                次の問題へ ➡️
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -742,6 +747,7 @@
             });
             
             document.getElementById('result-display').classList.remove('show', 'result-correct', 'result-incorrect');
+            document.getElementById('next-btn').style.display = 'none';
             hasAnswered = false;
         }
 
@@ -780,15 +786,18 @@
             resultDisplay.classList.add('show');
             resultDisplay.classList.add(isCorrect ? 'result-correct' : 'result-incorrect');
 
-            // 次の問題に進む
-            setTimeout(() => {
-                if (currentQuestionIndex + 1 < currentQuestions.length) {
-                    currentQuestionIndex++;
-                    displayQuestion();
-                } else {
-                    showFinalResult();
-                }
-            }, 3000);
+            // 次へボタンを表示
+            document.getElementById('next-btn').style.display = 'inline-block';
+        }
+
+        // 次の問題に進む
+        function nextQuestion() {
+            if (currentQuestionIndex + 1 < currentQuestions.length) {
+                currentQuestionIndex++;
+                displayQuestion();
+            } else {
+                showFinalResult();
+            }
         }
 
         // 最終結果表示
