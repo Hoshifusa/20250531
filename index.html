@@ -663,3 +663,177 @@
                 {
                     id: 30,
                     question: "良性の尿路上皮細胞集塊の辺縁には被蓋（傘）細胞が認められない。",
+                    answer: false,
+                    explanation: "良性の尿路上皮細胞集塊辺縁には被蓋細胞（アンブレラ細胞）が認められることがあります。被蓋細胞が認められれば良性を考えます。",
+                    topic: "尿"
+                }
+            ]
+        };
+
+        // ゲーム状態
+        let currentDifficulty = '';
+        let currentQuestions = [];
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let hasAnswered = false;
+
+        // 難易度ラベル
+        const difficultyLabels = {
+            basic: { name: "基礎", color: "#28a745" },
+            intermediate: { name: "標準", color: "#ffc107" },
+            advanced: { name: "上級", color: "#dc3545" }
+        };
+
+        // 問題をシャッフル
+        function shuffleArray(array) {
+            const shuffled = [...array];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        }
+
+        // クイズ開始
+        function startQuiz(difficulty) {
+            currentDifficulty = difficulty;
+            currentQuestions = shuffleArray(questionDatabase[difficulty]);
+            currentQuestionIndex = 0;
+            score = 0;
+            hasAnswered = false;
+
+            // 画面切り替え
+            document.getElementById('difficulty-selection').style.display = 'none';
+            document.getElementById('quiz-container').style.display = 'block';
+            document.getElementById('final-result').style.display = 'none';
+
+            // 難易度バッジ設定
+            const badge = document.getElementById('difficulty-badge');
+            badge.textContent = difficultyLabels[difficulty].name + 'レベル';
+            badge.style.backgroundColor = difficultyLabels[difficulty].color;
+
+            // 最初の問題を表示
+            displayQuestion();
+        }
+
+        // 問題表示
+        function displayQuestion() {
+            const question = currentQuestions[currentQuestionIndex];
+            
+            document.getElementById('topic-badge').textContent = question.topic;
+            document.getElementById('question-text').textContent = question.question;
+            document.getElementById('question-counter').textContent = 
+                `問題 ${currentQuestionIndex + 1} / ${currentQuestions.length}`;
+            
+            // プログレスバー更新
+            const progress = ((currentQuestionIndex + 1) / currentQuestions.length) * 100;
+            document.getElementById('progress-fill').style.width = progress + '%';
+
+            // スコア表示更新
+            document.getElementById('score-display').textContent = `スコア: ${score}`;
+            const accuracy = currentQuestionIndex > 0 ? Math.round((score / currentQuestionIndex) * 100) : 0;
+            document.getElementById('accuracy').textContent = `正答率: ${accuracy}%`;
+
+            // ボタンと結果をリセット
+            const buttons = document.querySelectorAll('.answer-btn');
+            buttons.forEach(btn => {
+                btn.classList.remove('correct', 'incorrect');
+                btn.disabled = false;
+            });
+            
+            document.getElementById('result-display').classList.remove('show', 'result-correct', 'result-incorrect');
+            hasAnswered = false;
+        }
+
+        // 回答処理
+        function answerQuestion(userAnswer) {
+            if (hasAnswered) return;
+            hasAnswered = true;
+
+            const question = currentQuestions[currentQuestionIndex];
+            const isCorrect = userAnswer === question.answer;
+            
+            if (isCorrect) {
+                score++;
+            }
+
+            // ボタンの色を変更
+            const buttons = document.querySelectorAll('.answer-btn');
+            buttons.forEach(btn => {
+                btn.disabled = true;
+                if ((btn.classList.contains('true') && userAnswer === true) ||
+                    (btn.classList.contains('false') && userAnswer === false)) {
+                    btn.classList.add(isCorrect ? 'correct' : 'incorrect');
+                }
+            });
+
+            // 結果表示
+            const resultDisplay = document.getElementById('result-display');
+            const resultTitle = document.getElementById('result-title');
+            const correctAnswer = document.getElementById('correct-answer');
+            const explanationText = document.getElementById('explanation-text');
+
+            resultTitle.textContent = isCorrect ? '✅ 正解！' : '❌ 不正解';
+            correctAnswer.textContent = `正答: ${question.answer ? '○（正しい）' : '×（間違い）'}`;
+            explanationText.textContent = question.explanation;
+
+            resultDisplay.classList.add('show');
+            resultDisplay.classList.add(isCorrect ? 'result-correct' : 'result-incorrect');
+
+            // 次の問題に進む
+            setTimeout(() => {
+                if (currentQuestionIndex + 1 < currentQuestions.length) {
+                    currentQuestionIndex++;
+                    displayQuestion();
+                } else {
+                    showFinalResult();
+                }
+            }, 3000);
+        }
+
+        // 最終結果表示
+        function showFinalResult() {
+            document.getElementById('quiz-container').style.display = 'none';
+            document.getElementById('final-result').style.display = 'block';
+
+            const percentage = Math.round((score / currentQuestions.length) * 100);
+            let grade, message;
+
+            if (percentage >= 90) {
+                grade = 'S';
+                message = '完璧です！細胞検査士として十分な知識です！';
+            } else if (percentage >= 80) {
+                grade = 'A';
+                message = '素晴らしい！試験合格レベルです！';
+            } else if (percentage >= 70) {
+                grade = 'B';
+                message = '良好です！もう少し復習して完璧に！';
+            } else if (percentage >= 60) {
+                grade = 'C';
+                message = '基礎はできています。応用問題を練習しましょう！';
+            } else {
+                grade = 'D';
+                message = '基礎から復習が必要です。頑張りましょう！';
+            }
+
+            document.getElementById('grade').textContent = grade;
+            document.getElementById('grade').className = `grade ${grade}`;
+            document.getElementById('score-text').textContent = `${score} / ${currentQuestions.length}`;
+            document.getElementById('percentage-text').textContent = `正答率 ${percentage}%`;
+            document.getElementById('grade-message').textContent = message;
+        }
+
+        // 同じレベルでリトライ
+        function retryQuiz() {
+            startQuiz(currentDifficulty);
+        }
+
+        // ホームに戻る
+        function goHome() {
+            document.getElementById('difficulty-selection').style.display = 'block';
+            document.getElementById('quiz-container').style.display = 'none';
+            document.getElementById('final-result').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
